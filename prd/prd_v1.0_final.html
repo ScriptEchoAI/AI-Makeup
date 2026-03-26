@@ -1,0 +1,512 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>AI 试妆助手 · PRD 最终版 v1.0</title>
+  <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+  <style>
+    :root {
+      --bg: #f8f7f4;
+      --surface: #ffffff;
+      --text: #1a1a1a;
+      --muted: #5c5c5c;
+      --accent: #8b5a6b;
+      --border: #e8e4df;
+      --toc-w: 230px;
+    }
+    * { box-sizing: border-box; }
+    body { margin: 0; font-family: "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif; background: var(--bg); color: var(--text); line-height: 1.6; }
+    .layout { display: flex; max-width: 1280px; margin: 0 auto; min-height: 100vh; }
+    nav.toc {
+      position: sticky; top: 0; align-self: flex-start; width: var(--toc-w); flex-shrink: 0;
+      padding: 1.25rem 1rem 2rem 1.25rem; max-height: 100vh; overflow: auto;
+      background: var(--bg); border-right: 1px solid var(--border);
+    }
+    nav.toc h2 { font-size: 0.75rem; letter-spacing: 0.06em; color: var(--muted); margin: 0 0 0.75rem 0; }
+    nav.toc a { display: block; font-size: 0.875rem; color: var(--text); text-decoration: none; padding: 0.35rem 0; border-left: 2px solid transparent; padding-left: 0.5rem; margin-left: -0.5rem; }
+    nav.toc a:hover { color: var(--accent); border-left-color: var(--accent); }
+    main { flex: 1; padding: 1.25rem 1rem 3rem 1rem; max-width: 720px; }
+    @media (min-width: 1024px) {
+      main { padding: 2rem 2.5rem 4rem 2rem; max-width: 880px; }
+    }
+    header.doc-head { margin-bottom: 1.5rem; padding-bottom: 1rem; border-bottom: 1px solid var(--border); display: flex; flex-wrap: wrap; align-items: flex-start; justify-content: space-between; gap: 1rem; }
+    header.doc-head h1 { font-size: 1.65rem; font-weight: 600; margin: 0 0 0.35rem 0; }
+    header.doc-head .meta { font-size: 0.9rem; color: var(--muted); }
+    .version-wrap { display: flex; align-items: center; gap: 0.5rem; font-size: 0.85rem; }
+    .version-wrap select { padding: 0.35rem 0.6rem; border-radius: 6px; border: 1px solid var(--border); background: var(--surface); color: var(--text); }
+    section { margin-bottom: 2.25rem; scroll-margin-top: 0.75rem; }
+    h2 { font-size: 1.2rem; font-weight: 600; margin: 0 0 1rem 0; padding-bottom: 0.45rem; border-bottom: 1px solid var(--border); }
+    h3 { font-size: 1.05rem; font-weight: 600; margin: 1.35rem 0 0.65rem 0; }
+    h4 { font-size: 0.95rem; font-weight: 600; margin: 1rem 0 0.5rem 0; }
+    p { margin: 0 0 1rem 0; color: #2d2d2d; }
+    ul { margin: 0 0 1rem 0; padding-left: 1.25rem; }
+    .card { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 1.15rem 1.35rem; margin-bottom: 1rem; }
+    table { width: 100%; border-collapse: collapse; font-size: 0.88rem; margin-bottom: 1rem; }
+    th, td { border: 1px solid var(--border); padding: 0.55rem 0.65rem; text-align: left; vertical-align: top; }
+    th { background: #f0ebe6; font-weight: 600; }
+    .feature-module { border: 1px solid var(--border); border-radius: 16px; padding: 1.25rem 1rem; margin-bottom: 2rem; background: var(--surface); }
+    @media (min-width: 640px) {
+      .feature-module { padding: 1.35rem 1.5rem; }
+    }
+    /* 移动端优先：说明在上，真机尺寸预览在下，避免横向并排裁切 */
+    .feature-content {
+      display: flex;
+      flex-direction: column;
+      gap: 1.5rem;
+      align-items: stretch;
+    }
+    .logic-rules { width: 100%; }
+    .sandbox-preview {
+      width: 100%;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+    .sandbox-preview h4 { width: 100%; max-width: 390px; }
+    .sandbox-meta {
+      width: 100%;
+      max-width: 390px;
+      font-size: 0.75rem;
+      color: var(--muted);
+      margin: 0 0 0.5rem 0;
+      word-break: break-all;
+    }
+    .sandbox-hint {
+      width: 100%;
+      max-width: 390px;
+      font-size: 0.78rem;
+      color: var(--muted);
+      margin: 0 0 0.65rem 0;
+      line-height: 1.45;
+    }
+    /* 手机外框：固定逻辑高度 + 内部滚动，完整显示工具栏与建议卡 */
+    .device-frame {
+      width: 100%;
+      max-width: 390px;
+      margin: 0 auto;
+      background: linear-gradient(145deg, #2a2a2a, #0d0d0d);
+      border-radius: 36px;
+      padding: 10px;
+      box-shadow:
+        0 0 0 1px rgba(255,255,255,0.06) inset,
+        0 24px 48px rgba(0,0,0,0.2),
+        0 8px 24px rgba(139, 90, 107, 0.12);
+    }
+    .device-frame-scroll {
+      width: 100%;
+      height: min(812px, 82dvh);
+      max-height: calc(100vh - 8rem);
+      overflow: auto;
+      overflow-x: hidden;
+      border-radius: 28px;
+      background: #000;
+      -webkit-overflow-scrolling: touch;
+      scrollbar-width: thin;
+    }
+    .device-frame-scroll::-webkit-scrollbar { width: 6px; }
+    .device-frame-scroll::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.2); border-radius: 3px; }
+    .iframe-shell {
+      display: block;
+      width: 390px;
+      max-width: 100%;
+      height: 812px;
+      border: none;
+      background: #fff;
+    }
+    .mermaid { margin: 0.75rem 0; }
+    .banner-old { display: none; background: #fff8e6; border: 1px solid #e8d48b; color: #6b5900; padding: 0.65rem 1rem; border-radius: 8px; margin-bottom: 1rem; font-size: 0.9rem; }
+    @media (max-width: 900px) {
+      .layout { flex-direction: column; }
+      nav.toc { position: relative; width: 100%; max-height: none; border-right: none; border-bottom: 1px solid var(--border); }
+      .device-frame-scroll {
+        height: min(812px, 70dvh);
+        max-height: calc(100vh - 10rem);
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="layout">
+    <nav class="toc" aria-label="目录">
+      <h2>目录</h2>
+      <a href="#s0">项目与版本</a>
+      <a href="#s1">需求背景</a>
+      <a href="#s2">需求目标</a>
+      <a href="#s3">用户与场景</a>
+      <a href="#s4">功能清单</a>
+      <a href="#s5">详细方案与原型</a>
+      <a href="#s6">业务流程图</a>
+      <a href="#s7">异常与边界</a>
+      <a href="#s8">埋点与演进</a>
+      <a href="#s9">附件</a>
+    </nav>
+    <main>
+      <header class="doc-head">
+        <div>
+          <h1>AI 试妆助手 · 产品需求文档</h1>
+          <p class="meta">路径：<code>prd/prd_v1.0_final.html</code> · 原型：<code>prototype/prototype_v1.0.html</code></p>
+        </div>
+        <div class="version-wrap">
+          <label for="ver-select">版本</label>
+          <select id="ver-select" aria-label="切换 PRD 版本">
+            <option value="final" selected>v1.0 最终版（本文）</option>
+            <option value="skeleton">v1.0 骨架版</option>
+          </select>
+        </div>
+      </header>
+
+      <section id="s0">
+        <h2>项目信息与版本记录</h2>
+        <div class="card">
+          <table>
+            <tr><th>项目名称</th><td>AI 试妆小工具 / AI 试妆助手（工作标题）</td></tr>
+            <tr><th>当前版本</th><td>v1.0 最终版（含原型切片与流程图）</td></tr>
+            <tr><th>关联原型</th><td>可部署 MVP 工程：<code>app/</code>（Vite，见 <code>app/README.md</code>）。PRD 内嵌 iframe 仍可用单文件 <code>prototype/prototype_v1.0.html</code>；参数 <code>demo=ar</code> / <code>demo=ar_self</code> / <code>focus=&lt;zone&gt;</code></td></tr>
+            <tr><th>变更说明</th><td>相对骨架版：补充详细方案模块、Mermaid 主/异常流程、iframe 沙盒切片、异常与埋点章节。</td></tr>
+            <tr><th>原型与 PRD 同步</th><td>按敏捷工作流步骤 4.3：用户提出原型修改时，须<strong>同时</strong>更新本文「详细方案」规则与说明。可部署 MVP 以 <code>app/</code> 为准；PRD 内嵌 iframe 仍可能指向 <code>prototype_v1.0.html</code>（单文件未含 MediaPipe 时与 <code>app/</code> 试妆页会有差异）。下列「同步记录」含 <code>app/</code> 最新行为。</td></tr>
+          </table>
+        </div>
+        <div class="card" style="margin-top:1rem;">
+          <h3 style="margin-top:0;font-size:1rem;">同步记录（与原型迭代对齐）</h3>
+          <ul style="margin:0.5rem 0 0 0;padding-left:1.2rem;font-size:0.9rem;line-height:1.55;">
+            <li><strong>隐私首访条：</strong>文案「本地优先…」；点击「知道了」关闭并写入会话记忆；该条不参与 <code>focus</code> 遮罩，避免嵌入 PRD 时无法点击。</li>
+            <li><strong>试妆页布局：</strong>取景区使用固定比例与最大高度，避免与下方「风格与结构建议」、底栏视觉重叠；「切换浓淡」位于预览区<strong>下方独立一行</strong>（同属 <code>focus=camera</code> 切片）；主内容区可纵向滚动。</li>
+            <li><strong>专注模式 URL：</strong>当 <code>focus</code> 与当前路由不一致（如在冷启动页仍带 <code>focus=toolbar</code>）时不应用遮罩；「重选场合」或返回冷启动时<strong>移除</strong> <code>focus</code> 查询参数，保证场合等可点选。</li>
+            <li><strong>保存对比反馈：</strong>Toast 在页面底部<strong>水平居中</strong>；动画 <code>transform</code> 与 <code>translateX(-50%)</code> 同时声明，避免与居中样式互斥。</li>
+            <li><strong>底栏窄屏：</strong>「保存对比」「重选场合」在窄宽度下纵向堆叠，避免两按钮挤压重叠。</li>
+            <li><strong>规则智能配妆 + MediaPipe 跟脸（<code>app/</code>）：</strong>试妆页使用 <code>@mediapipe/tasks-vision</code> Face Landmarker；在 <code>#lip-canvas</code> 上绘制<strong>唇、眉线、腮红、下颌修容、T 区高光</strong>（均跟脸）。本地规则：<strong>脸型 × 场合 × 关系 ×（肤色取样 × 眼型几何）</strong> → <code>makeupPacks.js</code>；<code>skinTone.js</code> / <code>eyeShape.js</code> 见 v1.5 验收。建议区含脸型 / 肤色 / 眼型 pill。角标「规则配妆 · 跟脸预览」。模型/WASM 自 CDN。详见「产品愿景 vs 当前交付」与「版本验收要点」。</li>
+          </ul>
+        </div>
+        <div class="card" style="margin-top:1rem;border-left:4px solid var(--accent);">
+          <h3 style="margin-top:0;font-size:1rem;">MVP v1.0 范围（已确认 · 2026-03）</h3>
+          <p style="font-size:0.9rem;margin:0 0 0.75rem 0;color:#2d2d2d;"><strong>第一版必做（可开发验收）：</strong></p>
+          <ul style="margin:0;padding-left:1.2rem;font-size:0.9rem;line-height:1.55;">
+            <li>冷启动三问（场合、年龄段、关系）</li>
+            <li>试妆页（摄像头 + 示意妆叠层，非真实人脸跟妆）</li>
+            <li>风格与结构建议（文案规则）</li>
+            <li>保存对比（MVP 可为 Toast 提示；正式版再写相册/沙盒）</li>
+            <li>隐私说明（首访条 + 可进入的隐私说明页/弹层）</li>
+          </ul>
+          <p style="font-size:0.9rem;margin:0.85rem 0 0.5rem 0;color:#2d2d2d;"><strong>第一版明确不做：</strong></p>
+          <ul style="margin:0;padding-left:1.2rem;font-size:0.9rem;line-height:1.55;color:#555;">
+            <li>真实人脸跟妆 / 高精度 AR 引擎</li>
+            <li>账号、登录、用户体系</li>
+            <li>云端上传、同步、云端推理（默认本地优先）</li>
+            <li>付费、订阅、商业化</li>
+          </ul>
+        </div>
+        <div class="card" style="margin-top:1rem;border-left:4px solid #6b8f71;">
+          <h3 style="margin-top:0;font-size:1rem;">产品愿景 vs 当前交付（对齐预期）</h3>
+          <p style="font-size:0.9rem;margin:0 0 0.6rem 0;line-height:1.55;"><strong>愿景（目标态）：</strong>基于识别到的五官与肤质特征，由 AI <strong>自动匹配</strong>眉形、唇色、眼妆结构、高光与阴影等，使预览<strong>自然、美观且个体适配</strong>；可结合云端大模型或专业美妆知识图谱迭代。</p>
+          <p style="font-size:0.9rem;margin:0 0 0.6rem 0;line-height:1.55;"><strong>当前 <code>app/</code> v1.x（已实现）：</strong>端上 MediaPipe Face Landmarker + <strong>本地规则引擎</strong>——<strong>脸型</strong>（圆/长/方/心/椭圆）、<strong>肤色取样</strong>（深浅/冷暖启发式）、<strong>眼型几何</strong>（圆/杏/细长等），再与<strong>场合、关系</strong>组合映射到<strong>妆容包</strong>（唇、腮红、修容、眉、高光）并<strong>跟脸绘制</strong>；建议区含结构化文案与 pill。此为<strong>可解释的演示级配妆</strong>，<strong>非</strong>深度学习意义上的「全脸智能美妆成片」。</p>
+          <p style="font-size:0.9rem;margin:0 0 0.85rem 0;line-height:1.55;color:#444;"><strong>路线图（草案）：</strong><strong>v1.x</strong> 持续打磨规则与叠层自然度、弱网与失败回退；<strong>v2</strong> 引入更强的人脸属性分析（肤色、立体度、眼型等）与更丰富妆容模板；<strong>v3+</strong> 可选云端推理 / 品牌色卡对接 / 用户反馈闭环。以 PRD 与立项评审为准。</p>
+          <h4 style="margin:0 0 0.5rem 0;font-size:0.95rem;">版本验收要点（与 <code>app/</code> 对齐，可迭代）</h4>
+          <table style="width:100%;font-size:0.85rem;border-collapse:collapse;">
+            <tr style="border-bottom:1px solid #e5e5e5;"><th style="text-align:left;padding:0.35rem 0.5rem 0.35rem 0;width:5rem;">版本</th><th style="text-align:left;padding:0.35rem 0;">验收关注点</th></tr>
+            <tr style="vertical-align:top;"><td style="padding:0.4rem 0.5rem 0.4rem 0;white-space:nowrap;"><strong>v1.5</strong></td><td style="padding:0.4rem 0;">端上<strong>肤色取样</strong>（额头/双颊 ROI、灰世界校正、Lab 分深浅、冷暖启发式）、<strong>眼型几何</strong>（眼裂比、外眼角倾斜）；与脸型、场合、关系一并进入 <code>resolveMakeupPack</code>；建议区 pill 与摘要中注明「规则演示 / 置信度」。</td></tr>
+            <tr style="vertical-align:top;border-top:1px solid #eee;"><td style="padding:0.4rem 0.5rem 0.4rem 0;"><strong>v2</strong></td><td style="padding:0.4rem 0;"><strong>妆容模板外置</strong>（JSON/表格/轻量 CMS），可按肤色档、眼型、脸型组合配置；弱光/侧光下<strong>置信度</strong>过低时自动回退仅脸型规则；可选更细<strong>立体度</strong>估计（仍需端上可解释）。</td></tr>
+            <tr style="vertical-align:top;border-top:1px solid #eee;"><td style="padding:0.4rem 0.5rem 0.4rem 0;"><strong>v3</strong></td><td style="padding:0.4rem 0;"><strong>可选云端推理</strong>：单独同意、HTTPS、超时/失败回退端上；可选<strong>品牌色卡/SKU</strong> 映射；埋点与反馈闭环（不含默认上传原图）。</td></tr>
+          </table>
+        </div>
+      </section>
+
+      <section id="s1">
+        <h2>一、需求背景</h2>
+        <p>用户在旅行、年会、节假日等出镜场景前，需要快速判断「某类妆容是否适合自己」；在帮长辈化妆时缺少可执行的结构化提示。小红书、抖音等教程无法回答「是否适合我」。本产品以<strong>实时 AR 预览 + 风格与结构建议</strong>为 MVP，区别于「事后修图」类应用。</p>
+      </section>
+
+      <section id="s2">
+        <h2>二、需求目标</h2>
+        <table>
+          <tr><th>目标类型</th><th>描述</th><th>衡量指标</th><th>目标值</th></tr>
+          <tr><td>效率</td><td>更快完成妆容决策并获得可执行细节。</td><td>首访至「建议+预览」完成时长、任务完成率。</td><td>典型路径 ≤10 分钟。</td></tr>
+          <tr><td>体验</td><td>避免强滤镜感；长辈举机场景可理解提示。</td><td>主观满意度、滤镜感负反馈率。</td><td>MVP 为轻度 AR + 结构建议。</td></tr>
+          <tr><td>信任</td><td>默认本地、默认不上云。</td><td>隐私相关客诉。</td><td>云端能力须单独勾选。</td></tr>
+        </table>
+      </section>
+
+      <section id="s3">
+        <h2>三、用户与使用场景</h2>
+        <p><strong>用户：</strong>以年轻女性为主，覆盖多年龄段；年龄以自选与估计结合，不一致时以<strong>自选</strong>为准。<strong>场景：</strong>旅游拍照、年会、节假日；<strong>关系场景：</strong>帮长辈化妆时长辈可举着手机，需距离与光线提示。</p>
+        <p><strong>冷启动：</strong>首次必须选择场合、年龄段、关系（给自己 / 帮长辈）。</p>
+      </section>
+
+      <section id="s4">
+        <h2>四、需求功能清单与优先级</h2>
+        <table>
+          <tr><th>模块</th><th>优先级</th><th>说明</th></tr>
+          <tr><td>冷启动与画像</td><td>P0</td><td>场合 / 年龄 / 关系；年龄冲突规则。</td></tr>
+          <tr><td>实时 AR 与取景辅助</td><td>P0</td><td>轻度叠层；帮长辈时距离/光线提示。</td></tr>
+          <tr><td>风格与结构建议</td><td>P0</td><td>含眉形、唇色不宜过浓等。</td></tr>
+          <tr><td>本地保存对比</td><td>P1</td><td>允许偶尔截图保存；默认本地。</td></tr>
+          <tr><td>跟练</td><td>P2</td><td>形态待定（checklist / 短循环）。</td></tr>
+        </table>
+      </section>
+
+      <section id="s5">
+        <h2>五、详细方案（原型沙盒切片）</h2>
+        <p class="card" style="margin-bottom:1.25rem;">下列为<strong>移动端优先</strong>预览：文案与流程图在上，下方为 iPhone 比例<strong>设备框</strong>（约 390×812），框内可<strong>上下滚动</strong>查看完整界面（含隐私条、取景区、建议卡与底栏）。iframe 使用 <code>sandbox=&quot;allow-scripts allow-same-origin&quot;</code>；<code>demo=ar</code> / <code>demo=ar_self</code> 用于直达试妆页。<strong>说明：</strong>下文「规则描述」须与 <code>prototype_v1.0.html</code> 同步维护（工作流步骤 4.3）。</p>
+
+        <div class="feature-module" id="feat-onboarding">
+          <h3>功能：冷启动与画像采集</h3>
+          <div class="feature-content">
+            <div class="logic-rules">
+              <h4>交互流程图</h4>
+              <pre class="mermaid">
+flowchart LR
+  A[选场合] --> B[选年龄段]
+  B --> C[选关系]
+  C --> D[进入试妆]
+              </pre>
+              <h4>规则描述</h4>
+              <ul>
+                <li><strong>触发：</strong>首次启动或「重选场合」（返回时 URL 会去掉 <code>focus</code> 参数，见同步记录）。</li>
+                <li><strong>交互：</strong>分步完成；「下一步」在未选当前步时禁用。</li>
+                <li><strong>规则：</strong>年龄估计与自选不一致时，以自选为准（原型用文案演示）。</li>
+                <li><strong>隐私条：</strong>首访展示「本地优先」说明；点击「知道了」关闭并记忆；不参与专注区遮罩，保证可点。</li>
+              </ul>
+            </div>
+            <div class="sandbox-preview">
+              <h4>移动端原型预览</h4>
+              <p class="sandbox-meta"><code>focus=onboarding#onboarding</code></p>
+              <p class="sandbox-hint">在设备框内滚动可查看冷启动各步完整内容。</p>
+              <div class="device-frame">
+                <div class="device-frame-scroll">
+                  <iframe class="iframe-shell" title="冷启动原型"
+                    src="../prototype/prototype_v1.0.html?focus=onboarding#onboarding"
+                    sandbox="allow-scripts allow-same-origin"
+                    allow="camera"></iframe>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="feature-module" id="feat-ar">
+          <h3>功能：实时取景与示意 AR 叠层</h3>
+          <div class="feature-content">
+            <div class="logic-rules">
+              <h4>交互流程图</h4>
+              <pre class="mermaid">
+flowchart TD
+  A[进入试妆页] --> B{相机权限}
+  B -->|允许| C[实时画面加叠层]
+  B -->|拒绝| D[占位画面加示意妆效]
+  C --> E[切换浓淡档]
+  D --> E
+              </pre>
+              <h4>规则描述</h4>
+              <ul>
+                <li><strong>说明：</strong>MVP 为示意叠层 + 文案预期管理，非最终高拟真 AR。</li>
+                <li><strong>布局：</strong>取景区为固定比例 + 最大高度，与建议卡分离；「切换浓淡」在预览区<strong>下方单独一行</strong>，与底栏按钮错层，避免重叠。</li>
+                <li><strong>反馈：</strong>授权相机成功后可淡出取景区内中央说明文案。</li>
+              </ul>
+            </div>
+            <div class="sandbox-preview">
+              <h4>移动端原型预览</h4>
+              <p class="sandbox-meta"><code>demo=ar&amp;focus=camera#ar</code></p>
+              <p class="sandbox-hint">在框内向下滚动可看到「切换浓淡」行与下方「风格建议」、底栏；授权相机后可见实时画面与示意妆效。</p>
+              <div class="device-frame">
+                <div class="device-frame-scroll">
+                  <iframe class="iframe-shell" title="AR 取景原型"
+                    src="../prototype/prototype_v1.0.html?demo=ar&focus=camera#ar"
+                    sandbox="allow-scripts allow-same-origin"
+                    allow="camera"></iframe>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="feature-module" id="feat-hints">
+          <h3>功能：帮长辈 · 距离与光线提示</h3>
+          <div class="feature-content">
+            <div class="logic-rules">
+              <h4>交互流程图</h4>
+              <pre class="mermaid">
+flowchart LR
+  A[关系等于帮长辈] --> B[显示举机距离提示条]
+  B --> C[与 AR 与同页建议并存]
+              </pre>
+              <h4>规则描述</h4>
+              <ul>
+                <li><strong>触发：</strong>画像中关系为「帮长辈」（<code>demo=ar</code> 已预设）。</li>
+                <li><strong>内容：</strong>一臂远、避免顶光、柔和光源等（可迭代文案）。</li>
+              </ul>
+            </div>
+            <div class="sandbox-preview">
+              <h4>移动端原型预览</h4>
+              <p class="sandbox-meta"><code>demo=ar&amp;focus=hints#ar</code></p>
+              <p class="sandbox-hint">顶部为举机距离提示条；向下滚动可对照取景区与下方建议卡。</p>
+              <div class="device-frame">
+                <div class="device-frame-scroll">
+                  <iframe class="iframe-shell" title="距离提示原型"
+                    src="../prototype/prototype_v1.0.html?demo=ar&focus=hints#ar"
+                    sandbox="allow-scripts allow-same-origin"
+                    allow="camera"></iframe>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="feature-module" id="feat-advice">
+          <h3>功能：风格与结构建议</h3>
+          <div class="feature-content">
+            <div class="logic-rules">
+              <h4>交互流程图</h4>
+              <pre class="mermaid">
+flowchart TD
+  A[画像标签] --> B[生成摘要与要点列表]
+  B --> C[帮长辈时强调眉唇与淡妆]
+              </pre>
+              <h4>规则描述</h4>
+              <ul>
+                <li><strong>输出：</strong>摘要 + 眉形、唇色浓淡、眼妆、腮红等条目。</li>
+                <li><strong>差异：</strong>帮长辈模式文案更偏柔和、低饱和。</li>
+              </ul>
+            </div>
+            <div class="sandbox-preview">
+              <h4>移动端原型预览</h4>
+              <p class="sandbox-meta"><code>demo=ar&amp;focus=advice#ar</code></p>
+              <p class="sandbox-hint">专注模式下仅高亮建议卡片区域，请在框内滚动确认全文与列表。</p>
+              <div class="device-frame">
+                <div class="device-frame-scroll">
+                  <iframe class="iframe-shell" title="建议卡片原型"
+                    src="../prototype/prototype_v1.0.html?demo=ar&focus=advice#ar"
+                    sandbox="allow-scripts allow-same-origin"
+                    allow="camera"></iframe>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="feature-module" id="feat-toolbar">
+          <h3>功能：保存对比与重选场合</h3>
+          <div class="feature-content">
+            <div class="logic-rules">
+              <h4>交互流程图</h4>
+              <pre class="mermaid">
+flowchart LR
+  A[保存对比] --> B[Toast 演示本地存储]
+  C[重选场合] --> D[回到冷启动]
+              </pre>
+              <h4>规则描述</h4>
+              <ul>
+                <li><strong>保存：</strong>MVP 为演示；点击后 Toast 提示，底部<strong>水平居中</strong>；正式版写入本机相册或沙盒。</li>
+                <li><strong>重选场合：</strong>回到冷启动并<strong>清除</strong> URL 中的 <code>focus</code> 参数，避免与冷启动路由冲突导致选项不可点。</li>
+                <li><strong>隐私：</strong>默认不上云；与顶部隐私条、弹窗一致。</li>
+                <li><strong>布局：</strong>窄屏下两按钮纵向排列，避免横向挤压重叠。</li>
+              </ul>
+            </div>
+            <div class="sandbox-preview">
+              <h4>移动端原型预览</h4>
+              <p class="sandbox-meta"><code>demo=ar&amp;focus=toolbar#ar</code></p>
+              <p class="sandbox-hint">请<strong>在设备框内向下滚动</strong>直至看到「保存对比」「重选场合」底栏；上方为取景区与建议摘要。</p>
+              <div class="device-frame">
+                <div class="device-frame-scroll">
+                  <iframe class="iframe-shell" title="底栏操作原型"
+                    src="../prototype/prototype_v1.0.html?demo=ar&focus=toolbar#ar"
+                    sandbox="allow-scripts allow-same-origin"
+                    allow="camera"></iframe>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section id="s6">
+        <h2>六、业务流程图（Mermaid）</h2>
+        <p>源文件见 <code>flowcharts/main_user_flow.mmd</code>。</p>
+        <div class="card">
+          <h3>主流程</h3>
+          <pre class="mermaid">
+flowchart TD
+  A[启动 App] --> B{是否已有有效画像会话}
+  B -->|否| C[冷启动：选场合]
+  C --> D[选年龄段]
+  D --> E[选关系：给自己或帮长辈]
+  E --> F[进入试妆页]
+  B -->|是| F
+  F --> G[实时取景]
+  G --> H[轻度 AR 叠层预览]
+  H --> I[生成风格与结构建议]
+  I --> J{用户操作}
+  J -->|保存对比| K[写入本地相册或应用沙盒]
+  J -->|切换浓淡| H
+  J -->|重选场合| C
+  J -->|返回| C
+          </pre>
+        </div>
+      </section>
+
+      <section id="s7">
+        <h2>七、异常与边界处理</h2>
+        <p>源文件见 <code>flowcharts/exception_and_edge.mmd</code>。</p>
+        <div class="card">
+          <pre class="mermaid">
+flowchart TD
+  A[请求相机权限] --> B{用户授权}
+  B -->|拒绝| C[使用占位画面与示意妆效]
+  B -->|允许| D[显示实时预览并叠层]
+  C --> E[仍可查看结构与风格建议]
+  D --> F{人脸检测}
+  F -->|未检测到| G[提示调整距离与光线]
+  F -->|检测到| H[正常预览与建议]
+  G --> F
+  I[帮长辈模式] --> J[显示举机距离与光线提示]
+  K[年龄自选与估计不一致] --> L[以用户自选为准并弱提示]
+          </pre>
+        </div>
+        <ul>
+          <li><strong>断网：</strong>MVP 默认本地处理；若未来有云，需离线降级与队列策略。</li>
+          <li><strong>空状态：</strong>未检测到人脸时持续提示调整取景。</li>
+          <li><strong>权限：</strong>拒绝相机后仍保留建议与示意叠层，引导设置中开启。</li>
+        </ul>
+      </section>
+
+      <section id="s8">
+        <h2>八、数据追踪与埋点（可选）</h2>
+        <table>
+          <tr><th>事件</th><th>说明</th></tr>
+          <tr><td>onboarding_complete</td><td>完成三步画像</td></tr>
+          <tr><td>camera_permission</td><td>授权结果 granted / denied</td></tr>
+          <tr><td>save_compare_tap</td><td>点击保存对比</td></tr>
+          <tr><td>intensity_toggle</td><td>切换浓淡档</td></tr>
+        </table>
+        <h3>九、未来演进规划</h3>
+        <ul>
+          <li>高拟真 AR 与跟练形态（checklist / 短循环视频）。</li>
+          <li>可选云端能力（显式同意）与账号同步。</li>
+        </ul>
+      </section>
+
+      <section id="s9">
+        <h2>十、附件</h2>
+        <ul>
+          <li><code>prd/prd_v1.0.html</code> — 第一版骨架详细稿</li>
+          <li><code>app/</code> — Vite 可部署 MVP（<code>app/README.md</code>）</li>
+          <li><code>prototype/prototype_v1.0.html</code> — 单文件交互原型（PRD 嵌入）</li>
+          <li><code>flowcharts/*.mmd</code> — Mermaid 源</li>
+          <li><code>templates/prd_template.md</code> — 章节参考</li>
+        </ul>
+      </section>
+
+      <footer class="card" style="margin-top:2rem;">
+        <p style="margin:0;font-size:0.88rem;color:var(--muted);">v1.0 最终版 PRD · 与 <code>prototype_v1.0.html</code> 联动；迭代时请复制为新版本文件并更新版本选择器，勿覆盖历史快照。</p>
+      </footer>
+    </main>
+  </div>
+  <script>
+    mermaid.initialize({ startOnLoad: true, theme: 'neutral', flowchart: { useMaxWidth: true } });
+    document.getElementById('ver-select').addEventListener('change', function () {
+      if (this.value === 'skeleton') {
+        window.location.href = 'prd_v1.0.html';
+      }
+    });
+  </script>
+</body>
+</html>

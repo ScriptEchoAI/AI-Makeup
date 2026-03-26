@@ -1,0 +1,225 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>AI 试妆助手 · MVP（Vite）</title>
+  <!--
+    app/ 工程入口；逻辑在 src/main.js；样式 Tailwind CDN + src/style.css。
+    原 prototype 说明：专注模式 URL ?focus=<zone>，例如
+    prototype_v1.0.html?focus=onboarding#onboarding
+    prototype_v1.0.html?focus=camera#ar
+    prototype_v1.0.html?focus=advice#ar
+    prototype_v1.0.html?focus=hints#ar
+    prototype_v1.0.html?focus=toolbar#ar
+    PRD 嵌入可带 demo=ar（帮长辈进试妆）或 demo=ar_self（给自己）
+    若希望更精致的视觉规范，可配合 Impeccable / frontend-design 等技能二次精修。
+  -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            brand: { DEFAULT: '#8b5a6b', light: '#a87888', dark: '#6d4454' },
+            cream: { DEFAULT: '#f8f7f4', dark: '#ebe6df' }
+          },
+          fontFamily: {
+            sans: ['"Plus Jakarta Sans"', 'PingFang SC', 'Microsoft YaHei', 'sans-serif'],
+          },
+          boxShadow: {
+            'soft': '0 8px 32px rgba(139, 90, 107, 0.12)',
+          }
+        }
+      }
+    };
+  </script>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="/src/style.css" />
+</head>
+<body class="bg-cream text-stone-900 min-h-screen antialiased selection:bg-brand/20">
+  <div id="app-root" class="max-w-md mx-auto min-h-screen bg-white shadow-soft sm:my-4 sm:rounded-3xl sm:min-h-[812px] sm:max-h-[90vh] overflow-hidden flex flex-col relative border border-stone-200/80">
+    <!-- 顶部栏 -->
+    <header data-focus-zone="shell" class="flex items-center justify-between px-4 pt-4 pb-2 shrink-0 border-b border-stone-100 bg-white/95 backdrop-blur z-40">
+      <button type="button" id="btn-back" class="w-10 h-10 rounded-full flex items-center justify-center text-stone-500 hover:bg-stone-100 transition-colors hidden" aria-label="返回">
+        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/></svg>
+      </button>
+      <div class="flex-1 text-center">
+        <h1 class="text-sm font-semibold tracking-tight text-stone-800">AI 试妆助手</h1>
+        <p id="header-sub" class="text-[11px] text-stone-400 mt-0.5">轻度 AR 预览 · 结构级建议</p>
+      </div>
+      <button type="button" id="btn-info" class="w-10 h-10 rounded-full flex items-center justify-center text-stone-500 hover:bg-stone-100 transition-colors" aria-label="隐私说明">
+        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+      </button>
+    </header>
+
+    <!-- 隐私首访条（可关）；不设 data-focus-zone，避免专注模式下整区被 pointer-events:none 导致「知道了」无法点击 -->
+    <div id="privacy-banner" class="mx-4 mt-3 px-3 py-2.5 rounded-xl bg-emerald-50 border border-emerald-100 text-emerald-900 text-xs leading-relaxed hidden shrink-0 relative z-20">
+      <span class="font-medium">本地优先：</span>对比图默认保存在本机，不上传云端。未来若提供云功能，将单独征得您的同意。
+      <button type="button" id="privacy-dismiss" class="ml-2 text-emerald-700 underline font-medium cursor-pointer py-1.5 px-1 -my-1 rounded-md hover:bg-emerald-100/80 active:bg-emerald-100">知道了</button>
+    </div>
+
+    <!-- ========== 冷启动 / 画像 ========== -->
+    <section id="screen-onboarding" class="flex-1 flex flex-col px-4 pb-6 overflow-y-auto hidden">
+      <div data-focus-zone="onboarding" class="flex-1 flex flex-col rounded-2xl transition-opacity duration-300">
+        <div class="flex gap-1.5 mt-4 mb-6">
+          <span class="h-1 flex-1 rounded-full bg-brand step-pill" data-step="1"></span>
+          <span class="h-1 flex-1 rounded-full bg-stone-200 step-pill" data-step="2"></span>
+          <span class="h-1 flex-1 rounded-full bg-stone-200 step-pill" data-step="3"></span>
+        </div>
+
+        <div id="onb-step-1" class="onb-panel">
+          <h2 class="text-xl font-bold text-stone-900 mb-1">这次是什么场合？</h2>
+          <p class="text-sm text-stone-500 mb-5">我们会按场合调整重点与风格（示例选项）。</p>
+          <div class="flex flex-wrap gap-2" id="chips-occasion">
+            <button type="button" class="chip px-4 py-2.5 rounded-full text-sm font-medium border-2 border-stone-200 bg-white text-stone-700 hover:border-brand/40" data-value="travel">旅行拍照</button>
+            <button type="button" class="chip px-4 py-2.5 rounded-full text-sm font-medium border-2 border-stone-200 bg-white text-stone-700 hover:border-brand/40" data-value="party">公司年会</button>
+            <button type="button" class="chip px-4 py-2.5 rounded-full text-sm font-medium border-2 border-stone-200 bg-white text-stone-700 hover:border-brand/40" data-value="holiday">节假日聚会</button>
+            <button type="button" class="chip px-4 py-2.5 rounded-full text-sm font-medium border-2 border-stone-200 bg-white text-stone-700 hover:border-brand/40" data-value="daily">日常出门</button>
+          </div>
+        </div>
+
+        <div id="onb-step-2" class="onb-panel hidden">
+          <h2 class="text-xl font-bold text-stone-900 mb-1">年龄段</h2>
+          <p class="text-sm text-stone-500 mb-2">若与自动识别不一致，<span class="text-brand font-medium">以您的选择为准</span>。</p>
+          <p id="age-guess" class="text-xs text-stone-400 mb-4 p-2 rounded-lg bg-stone-50 border border-stone-100">系统推测（演示）：<span id="age-guess-val">—</span> · 可忽略</p>
+          <div class="flex flex-wrap gap-2" id="chips-age">
+            <button type="button" class="chip px-4 py-2.5 rounded-full text-sm font-medium border-2 border-stone-200" data-value="18-25">18–25</button>
+            <button type="button" class="chip px-4 py-2.5 rounded-full text-sm font-medium border-2 border-stone-200" data-value="26-35">26–35</button>
+            <button type="button" class="chip px-4 py-2.5 rounded-full text-sm font-medium border-2 border-stone-200" data-value="36-45">36–45</button>
+            <button type="button" class="chip px-4 py-2.5 rounded-full text-sm font-medium border-2 border-stone-200" data-value="46-55">46–55</button>
+            <button type="button" class="chip px-4 py-2.5 rounded-full text-sm font-medium border-2 border-stone-200" data-value="55+">55 及以上</button>
+          </div>
+        </div>
+
+        <div id="onb-step-3" class="onb-panel hidden">
+          <h2 class="text-xl font-bold text-stone-900 mb-1">为谁试妆？</h2>
+          <p class="text-sm text-stone-500 mb-5">选「帮长辈」会开启距离与光线提示（演示）。</p>
+          <div class="grid grid-cols-2 gap-3">
+            <button type="button" class="rel-chip flex flex-col items-center p-4 rounded-2xl border-2 border-stone-200 bg-white hover:border-brand/50 transition-all" data-value="self">
+              <span class="text-2xl mb-2">✨</span>
+              <span class="font-semibold text-stone-800">给自己</span>
+              <span class="text-xs text-stone-400 mt-1">自拍试妆</span>
+            </button>
+            <button type="button" class="rel-chip flex flex-col items-center p-4 rounded-2xl border-2 border-stone-200 bg-white hover:border-brand/50 transition-all" data-value="elder">
+              <span class="text-2xl mb-2">💐</span>
+              <span class="font-semibold text-stone-800">帮长辈</span>
+              <span class="text-xs text-stone-400 mt-1">如节日给妈妈化妆</span>
+            </button>
+          </div>
+        </div>
+
+        <div class="mt-auto pt-6 space-y-3">
+          <button type="button" id="btn-onb-next" class="w-full py-3.5 rounded-2xl bg-brand text-white font-semibold text-sm shadow-lg shadow-brand/25 hover:bg-brand-dark active:scale-[0.98] transition-all disabled:opacity-40 disabled:pointer-events-none">
+            下一步
+          </button>
+          <button type="button" id="btn-onb-prev" class="w-full py-3 rounded-2xl text-stone-500 text-sm font-medium hover:bg-stone-50 hidden">上一步</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- ========== AR 试妆主界面 ========== -->
+    <section id="screen-ar" class="flex-1 flex flex-col min-h-0 hidden">
+      <!-- 取景提示（帮长辈） -->
+      <div id="hint-banner" data-focus-zone="hints" class="mx-4 mt-3 px-3 py-2.5 rounded-xl bg-amber-50 border border-amber-100 text-amber-950 text-xs leading-relaxed hidden transition-opacity duration-300">
+        <strong class="font-semibold">举机距离：</strong>请让长辈将面部置于圆环内，手机与她面部约<strong>一臂远</strong>；避开顶光，面向柔和光源。
+      </div>
+
+      <div class="flex-1 flex flex-col px-4 pb-4 min-h-0 gap-3 overflow-y-auto overscroll-contain">
+        <!-- 取景 + 控制条（同一 focus 区，避免预览区 flex-1 与下方卡片叠层） -->
+        <div data-focus-zone="camera" class="flex flex-col gap-2 shrink-0 transition-opacity duration-300">
+          <div class="relative w-full aspect-[3/4] max-h-[min(52vh,400px)] min-h-[220px] rounded-3xl overflow-hidden bg-stone-900 shadow-inner isolate">
+            <video id="cam-video" class="absolute inset-0 w-full h-full object-cover opacity-0 pointer-events-none" playsinline autoplay muted></video>
+            <canvas id="lip-canvas" class="absolute inset-0 z-[4] w-full h-full pointer-events-none" width="300" height="400" aria-hidden="true"></canvas>
+            <div id="cam-placeholder" class="absolute inset-0 z-0 flex flex-col items-center justify-center bg-gradient-to-b from-stone-800 to-stone-950 pointer-events-none">
+              <div class="relative w-48 h-64 flex items-center justify-center">
+                <div class="absolute inset-0 rounded-[45%] border-2 border-white/20 ar-ring"></div>
+                <div class="absolute inset-3 rounded-[45%] border border-brand/40"></div>
+              </div>
+            </div>
+            <div id="cam-hint" class="absolute inset-0 z-[6] flex flex-col items-center justify-center pointer-events-none text-center px-6">
+              <p class="text-xs text-stone-300 max-w-[240px] leading-relaxed drop-shadow-md">演示：未授权相机时为<strong class="text-white/90">模拟人脸区</strong>；彩色叠层为<strong class="text-rose-200/90">示意妆效</strong>（非真实 AR）。</p>
+              <p class="text-[10px] text-stone-400 mt-2 drop-shadow">下方可选「妆容预设」；真机授权相机后叠在实时画面上。</p>
+            </div>
+            <div id="demo-makeup" class="absolute inset-0 pointer-events-none flex items-center justify-center z-[2]" style="opacity:0.62" aria-hidden="true">
+              <div class="relative w-44 h-56 scale-[1.02]">
+                <div class="absolute top-[38%] left-[14%] w-[34%] h-[14%] rounded-full bg-amber-900/25 blur-md mix-blend-soft-light"></div>
+                <div class="absolute top-[38%] right-[14%] w-[34%] h-[14%] rounded-full bg-amber-900/25 blur-md mix-blend-soft-light"></div>
+                <div class="absolute top-[56%] left-[18%] w-11 h-7 rounded-full bg-rose-400/50 blur-lg mix-blend-soft-light"></div>
+                <div class="absolute top-[56%] right-[18%] w-11 h-7 rounded-full bg-rose-400/50 blur-lg mix-blend-soft-light"></div>
+                <div class="absolute bottom-[22%] left-1/2 -translate-x-1/2 w-[38%] h-[10%] rounded-full bg-rose-600/45 blur-md mix-blend-multiply"></div>
+                <div class="absolute bottom-[24%] left-1/2 -translate-x-1/2 w-[32%] h-[5%] rounded-full bg-rose-300/35 blur-sm"></div>
+              </div>
+            </div>
+            <div id="ar-overlay" class="absolute inset-0 pointer-events-none flex items-center justify-center z-[3]" style="opacity:0.62">
+              <svg class="w-40 h-52 text-rose-200/50" viewBox="0 0 100 120" fill="none" aria-hidden="true">
+                <ellipse cx="50" cy="58" rx="32" ry="40" stroke="currentColor" stroke-width="0.8" />
+                <path d="M38 52 Q50 48 62 52" stroke="currentColor" stroke-width="1.2" fill="none" />
+                <ellipse cx="42" cy="54" rx="3" ry="2" fill="currentColor" />
+                <ellipse cx="58" cy="54" rx="3" ry="2" fill="currentColor" />
+                <path d="M45 68 Q50 72 55 68" stroke="currentColor" stroke-width="1" fill="none" />
+              </svg>
+            </div>
+            <div class="absolute top-3 left-3 z-[7] pointer-events-none max-w-[min(100%,14rem)]">
+              <span id="ar-mode-badge" class="text-[10px] text-white/80 bg-black/35 px-2 py-1 rounded-lg backdrop-blur-sm leading-snug block">准备中…</span>
+            </div>
+          </div>
+          <div class="flex flex-col gap-2 min-h-[44px]">
+            <span class="text-[10px] text-stone-500 leading-tight">轻度 AR 预览，非最终成片效果</span>
+            <div id="look-chip-row" class="flex flex-wrap gap-1.5 justify-end" role="tablist" aria-label="妆容预设"></div>
+            <div id="look-strength-panel" class="hidden flex items-center gap-2 w-full pt-0.5" aria-live="polite">
+              <label for="look-strength-slider" class="text-[10px] text-stone-500 shrink-0 whitespace-nowrap">妆容浓度</label>
+              <input type="range" id="look-strength-slider" min="0" max="100" class="flex-1 min-w-0 h-2 cursor-grab active:cursor-grabbing" style="accent-color:#8b5a6b" />
+              <span id="look-strength-pct" class="text-[10px] text-stone-500 w-9 text-right shrink-0 tabular-nums">72%</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- 建议卡片 -->
+        <div data-focus-zone="advice" class="rounded-2xl border border-stone-200 bg-cream p-4 shadow-sm transition-opacity duration-300 shrink-0">
+          <div class="flex items-center justify-between mb-2 gap-2 flex-wrap">
+            <h3 class="text-sm font-bold text-stone-800">风格与结构建议</h3>
+            <div class="flex items-center gap-1.5 shrink-0 flex-wrap justify-end">
+              <span id="face-shape-pill" class="hidden text-[10px] px-2 py-0.5 rounded-full bg-stone-200 text-stone-700 font-medium">—</span>
+              <span id="skin-tone-pill" class="hidden text-[10px] px-2 py-0.5 rounded-full bg-amber-100 text-amber-900/90 font-medium">—</span>
+              <span id="eye-shape-pill" class="hidden text-[10px] px-2 py-0.5 rounded-full bg-sky-100 text-sky-900/90 font-medium">—</span>
+              <span id="advice-tag" class="text-[10px] px-2 py-0.5 rounded-full bg-brand/10 text-brand font-medium">已按您的选择</span>
+            </div>
+          </div>
+          <p id="advice-summary" class="text-sm text-stone-600 leading-relaxed mb-3"></p>
+          <ul id="advice-list" class="text-xs text-stone-600 space-y-2 border-t border-stone-200/80 pt-3"></ul>
+        </div>
+
+        <!-- 底栏操作 -->
+        <div data-focus-zone="toolbar" class="flex flex-col sm:flex-row gap-2 shrink-0 pb-1 transition-opacity duration-300">
+          <button type="button" id="btn-save-compare" class="w-full sm:flex-1 min-w-0 py-3.5 rounded-2xl bg-stone-900 text-white text-sm font-semibold hover:bg-stone-800 active:scale-[0.99] transition-all">
+            保存对比（本地）
+          </button>
+          <button type="button" id="btn-reonboard" class="w-full sm:w-auto sm:shrink-0 py-3.5 px-4 rounded-2xl border-2 border-stone-200 text-stone-600 text-sm font-medium hover:bg-stone-50 whitespace-nowrap text-center">
+            重选场合
+          </button>
+        </div>
+      </div>
+    </section>
+
+    <!-- Toast -->
+    <div id="toast" class="fixed bottom-24 left-1/2 max-w-sm w-[min(90%,20rem)] px-4 py-3 rounded-2xl bg-stone-900 text-white text-sm text-center shadow-xl z-[100] opacity-0 pointer-events-none [transform:translateX(-50%)]" role="status"></div>
+
+    <!-- 隐私说明弹窗 -->
+    <div id="modal-privacy" class="fixed inset-0 z-[90] hidden items-center justify-center p-6 bg-black/40 backdrop-blur-sm">
+      <div class="bg-white rounded-3xl max-w-sm w-full p-6 shadow-2xl">
+        <h3 class="text-lg font-bold text-stone-900 mb-2">数据与隐私（MVP）</h3>
+        <ul class="text-sm text-stone-600 space-y-2 mb-6">
+          <li>· 试妆预览与对比图默认仅保存在本机。</li>
+          <li>· 默认不向云端上传您的照片。</li>
+          <li>· 若未来提供云同步或云端精修，将单独征得同意。</li>
+        </ul>
+        <button type="button" id="modal-privacy-close" class="w-full py-3 rounded-2xl bg-brand text-white font-semibold text-sm">关闭</button>
+      </div>
+    </div>
+  </div>
+  <script type="module" src="/src/main.js"></script>
+</body>
+</html>

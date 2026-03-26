@@ -1,0 +1,409 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>AI 试妆助手 · 产品需求文档 v1.0</title>
+  <style>
+    :root {
+      --bg: #f8f7f4;
+      --surface: #ffffff;
+      --text: #1a1a1a;
+      --muted: #5c5c5c;
+      --accent: #8b5a6b;
+      --border: #e8e4df;
+      --toc-w: 220px;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.6;
+    }
+    .layout {
+      display: flex;
+      max-width: 1200px;
+      margin: 0 auto;
+      min-height: 100vh;
+    }
+    nav.toc {
+      position: sticky;
+      top: 0;
+      align-self: flex-start;
+      width: var(--toc-w);
+      flex-shrink: 0;
+      padding: 1.25rem 1rem 2rem 1.25rem;
+      max-height: 100vh;
+      overflow: auto;
+      background: var(--bg);
+      border-right: 1px solid var(--border);
+    }
+    nav.toc h2 {
+      font-size: 0.75rem;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      color: var(--muted);
+      margin: 0 0 0.75rem 0;
+    }
+    nav.toc a {
+      display: block;
+      font-size: 0.875rem;
+      color: var(--text);
+      text-decoration: none;
+      padding: 0.35rem 0;
+      border-left: 2px solid transparent;
+      padding-left: 0.5rem;
+      margin-left: -0.5rem;
+    }
+    nav.toc a:hover { color: var(--accent); border-left-color: var(--accent); }
+    main {
+      flex: 1;
+      padding: 2rem 2.5rem 4rem 2rem;
+      max-width: 920px;
+    }
+    header.doc-head {
+      margin-bottom: 2rem;
+      padding-bottom: 1.5rem;
+      border-bottom: 1px solid var(--border);
+    }
+    header.doc-head h1 {
+      font-size: 1.75rem;
+      font-weight: 600;
+      margin: 0 0 0.5rem 0;
+      letter-spacing: -0.02em;
+    }
+    header.doc-head .meta {
+      font-size: 0.9rem;
+      color: var(--muted);
+    }
+    section {
+      margin-bottom: 2.5rem;
+      scroll-margin-top: 1rem;
+    }
+    h2 {
+      font-size: 1.25rem;
+      font-weight: 600;
+      margin: 0 0 1rem 0;
+      padding-bottom: 0.5rem;
+      border-bottom: 1px solid var(--border);
+    }
+    h3 {
+      font-size: 1.05rem;
+      font-weight: 600;
+      margin: 1.5rem 0 0.75rem 0;
+    }
+    p { margin: 0 0 1rem 0; color: #2d2d2d; }
+    ul { margin: 0 0 1rem 0; padding-left: 1.25rem; }
+    li { margin-bottom: 0.35rem; }
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 1.25rem 1.5rem;
+      margin-bottom: 1rem;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.9rem;
+      margin-bottom: 1rem;
+    }
+    th, td {
+      border: 1px solid var(--border);
+      padding: 0.65rem 0.75rem;
+      text-align: left;
+      vertical-align: top;
+    }
+    th { background: #f0ebe6; font-weight: 600; }
+    .tag {
+      display: inline-block;
+      font-size: 0.75rem;
+      padding: 0.15rem 0.5rem;
+      border-radius: 4px;
+      background: #ede8e4;
+      color: var(--muted);
+    }
+    .placeholder {
+      background: #fff9e6;
+      border: 1px dashed #e0c766;
+      padding: 1rem 1.25rem;
+      border-radius: 8px;
+      color: #6b5a00;
+      font-size: 0.9rem;
+    }
+    code { font-size: 0.88em; background: #eeeae6; padding: 0.1em 0.35em; border-radius: 3px; }
+    .version-badge {
+      float: right;
+      font-size: 0.8rem;
+      color: var(--muted);
+    }
+    @media (max-width: 900px) {
+      .layout { flex-direction: column; }
+      nav.toc {
+        position: relative;
+        width: 100%;
+        max-height: none;
+        border-right: none;
+        border-bottom: 1px solid var(--border);
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="layout">
+    <nav class="toc" aria-label="目录">
+      <h2>目录</h2>
+      <a href="#s0">项目信息</a>
+      <a href="#s1">需求背景</a>
+      <a href="#s2">需求目标</a>
+      <a href="#s3">用户与场景</a>
+      <a href="#s4">用户旅程</a>
+      <a href="#s5">功能清单与逻辑</a>
+      <a href="#s6">数据与隐私</a>
+      <a href="#s7">非功能与风险</a>
+      <a href="#s8">待原型补充</a>
+    </nav>
+    <main>
+      <header class="doc-head">
+        <span class="version-badge">v1.0 · 初步详细版</span>
+        <h1>AI 试妆助手（工作标题）</h1>
+        <p class="meta">文档类型：产品需求文档（PRD）｜格式：HTML｜路径：<code>prd/prd_v1.0.html</code></p>
+        <p class="meta" style="margin-top:0.5rem;">含流程图与原型切片的最终版：<a href="prd_v1.0_final.html">prd_v1.0_final.html</a>（其中「同步记录」与 <code>prototype_v1.0.html</code> 迭代对齐；原型变更须同步改 PRD，见敏捷工作流步骤 4.3。）</p>
+      </header>
+
+      <section id="s0">
+        <h2>项目信息与版本记录</h2>
+        <div class="card">
+          <table>
+            <tr><th>项目名称</th><td>AI 试妆小工具（App，暂定）</td></tr>
+            <tr><th>文档版本</th><td>v1.0</td></tr>
+            <tr><th>状态</th><td>需求已确认（对话采集），待原型与流程图细化</td></tr>
+            <tr><th>产品一句话</th><td>通过<strong>实时 AR 试妆</strong>与<strong>风格/结构级化妆建议</strong>，帮助各年龄段用户快速判断「这类妆容是否适合自己」，并在「帮长辈化妆」等场景给出可执行注意事项；默认本地保存，默认不上云。</td></tr>
+            <tr><th>版本切换（预留）</th><td>后续迭代请在 <code>prd/</code> 复制为 <code>prd_v1.1.html</code>，并在页面内增加版本下拉跳转；勿覆盖 v1.0。</td></tr>
+          </table>
+        </div>
+      </section>
+
+      <section id="s1">
+        <h2>一、需求背景</h2>
+        <h3>1.1 现状问题</h3>
+        <ul>
+          <li>用户希望在出行、年会、节假日拍照等「要出镜」的场景前，快速判断<strong>某类妆容是否适合自己</strong>，而不是仅在修图阶段「把照片变美」。</li>
+          <li>现有习惯多为在<strong>小红书、抖音</strong>等平台搜索妆教，但内容无法回答「这款妆<strong>是否适合我的脸与年龄</strong>」，试错成本高。</li>
+          <li>在<strong>节日给妈妈化妆</strong>等场景中，操作者常不知道从何下手（眉形、唇色浓淡、整体风格），需要<strong>关系型、代际友好</strong>的指导，而非泛化教程。</li>
+        </ul>
+        <h3>1.2 与「美妆修图类 App」的差异（定位）</h3>
+        <div class="card">
+          <table>
+            <tr>
+              <th>维度</th>
+              <th>修图/上传类美妆</th>
+              <th>本产品（MVP）</th>
+            </tr>
+            <tr>
+              <td>核心任务</td>
+              <td>事后美化成片</td>
+              <td><strong>事前决策 + 结构建议</strong>：场合/年龄/关系下的风格族与步骤级注意事项</td>
+            </tr>
+            <tr>
+              <td>试妆载体</td>
+              <td>常依赖上传照片叠加</td>
+              <td><strong>实时摄像头 AR 叠妆</strong>为主（上传对比非 MVP 核心，避免与修图同质化）</td>
+            </tr>
+            <tr>
+              <td>输出</td>
+              <td>成片效果</td>
+              <td>可解释的「适合度 + 结构」：如眉形建议、唇色不宜过浓、浓淡档位等，后续再接跟练</td>
+            </tr>
+          </table>
+        </div>
+      </section>
+
+      <section id="s2">
+        <h2>二、需求目标</h2>
+        <table>
+          <tr>
+            <th>目标类型</th>
+            <th>描述</th>
+            <th>衡量指标（建议）</th>
+            <th>目标值（MVP 方向）</th>
+          </tr>
+          <tr>
+            <td>效率</td>
+            <td>用户在关键场合前，更快完成「是否尝试该类妆容」的决策，并获得可执行的细节提示。</td>
+            <td>从打开 App 到获得「结构建议 + AR 预览」的时长；任务完成率。</td>
+            <td>典型路径 <strong>≤ 10 分钟</strong>内完成首次闭环（与需求方口头目标一致）。</td>
+          </tr>
+          <tr>
+            <td>体验</td>
+            <td>妆效可信，避免「强滤镜感」；在长辈举机自拍场景下，通过提示降低废片与挫败感。</td>
+            <td>主观满意度（内测问卷）、与「假脸/滤镜感」相关的负反馈率。</td>
+            <td>负反馈占比持续监控；MVP 以<strong>轻度 AR + 风格结构建议</strong>为主，不承诺高拟真。</td>
+          </tr>
+          <tr>
+            <td>信任</td>
+            <td>数据默认留在本地；任何云端能力需用户显式同意。</td>
+            <td>隐私相关客诉数；可选功能勾选率（未来若有云）。</td>
+            <td>默认<strong>本地保存</strong>、<strong>默认不上云</strong>；云端能力上线前须独立同意与说明。</td>
+          </tr>
+          <tr>
+            <td>演进</td>
+            <td>后期可加强「高还原真实妆效」；MVP 先验证 AR + 建议闭环。</td>
+            <td>版本迭代留存、功能使用率。</td>
+            <td>见「待原型确认」与 Roadmap。</td>
+          </tr>
+        </table>
+      </section>
+
+      <section id="s3">
+        <h2>三、用户与使用场景</h2>
+        <h3>3.1 典型用户</h3>
+        <ul>
+          <li><strong>核心受众倾向</strong>：年轻女性用户占比较高。</li>
+          <li><strong>全年龄段</strong>：产品需覆盖不同年龄段；<strong>年龄策略</strong>为「人脸估计 + 用户自选」结合，<strong>二者不一致时以用户自选为准</strong>。</li>
+          <li><strong>关系型场景</strong>：用户为<strong>长辈（如妈妈）选妆</strong>时，长辈可能<strong>举着手机</strong>完成取景——需考虑<strong>取景距离、光线</strong>等引导（见功能逻辑）。</li>
+        </ul>
+        <h3>3.2 典型场合（冷启动需采集）</h3>
+        <p>首次进入需选择：<strong>场合</strong>（如旅行拍照、公司年会、节假日聚会等）、<strong>年龄段</strong>、<strong>关系</strong>（给自己化妆 / 帮长辈化妆）。具体选项列表可在原型阶段固化。</p>
+      </section>
+
+      <section id="s4">
+        <h2>四、用户使用场景与用户旅程图</h2>
+        <table>
+          <tr>
+            <th>阶段</th>
+            <th>用户触点</th>
+            <th>用户行为</th>
+            <th>痛点 / 情绪</th>
+            <th>产品机会点</th>
+          </tr>
+          <tr>
+            <td>动机产生</td>
+            <td>社交平台妆教、亲友邀约、照镜子</td>
+            <td>想尝试某类妆容或帮长辈化妆</td>
+            <td>不确定是否适合自己或长辈；怕踩雷</td>
+            <td>明确「事前试妆 + 结构建议」定位，区别于纯修图</td>
+          </tr>
+          <tr>
+            <td>进入产品</td>
+            <td>App 启动、权限（相机）</td>
+            <td>首次选择场合 / 年龄 / 关系</td>
+            <td>选项多易烦；怕隐私泄露</td>
+            <td>冷启动路径清晰；默认本地、默认不上云的可视化说明</td>
+          </tr>
+          <tr>
+            <td>试妆与预览</td>
+            <td>实时 AR 取景</td>
+            <td>调整脸部入镜、查看叠妆效果</td>
+            <td>妆效假、像滤镜；光线差效果差</td>
+            <td>轻度 AR + 文案预期管理；距离/光线提示（尤其长辈举机）</td>
+          </tr>
+          <tr>
+            <td>理解与决策</td>
+            <td>建议面板</td>
+            <td>阅读风格族与结构建议（眉、唇浓淡等）</td>
+            <td>只看教程仍不会画</td>
+            <td>先「推荐适合风格 + 注意事项」，再迭代跟练形态</td>
+          </tr>
+          <tr>
+            <td>留存与对比</td>
+            <td>截图 / 保存</td>
+            <td>保存前后对比（允许偶尔）</td>
+            <td>占存储；担心上传</td>
+            <td>本地保存；上传云为未来可选且需勾选</td>
+          </tr>
+        </table>
+      </section>
+
+      <section id="s5">
+        <h2>五、详细功能清单与基础逻辑</h2>
+        <p>以下为 MVP 必须梳理的<strong>操作主线、前置条件、业务规则与数据流向</strong>；与界面强相关的交互细节待原型确认后写入「详细方案」章节（最终版 PRD）。</p>
+
+        <h3>5.1 模块总览</h3>
+        <table>
+          <tr><th>模块</th><th>优先级</th><th>概要</th></tr>
+          <tr><td>F1 冷启动与场合画像</td><td>P0</td><td>首次（或重置后）必选：场合、年龄段、关系；年龄冲突以自选为准。</td></tr>
+          <tr><td>F2 实时 AR 试妆</td><td>P0</td><td>摄像头实时叠妆（轻度），强调可信预览而非厚重滤镜。</td></tr>
+          <tr><td>F3 风格与结构建议</td><td>P0</td><td>输出风格族与结构化建议：须覆盖眉形、唇色浓淡等（给妈妈妆等场景尤先）。</td></tr>
+          <tr><td>F4 取景辅助</td><td>P0</td><td>针对「长辈举机」：距离是否合适、光线是否过暗/过曝等提示（规则可迭代）。</td></tr>
+          <tr><td>F5 对比与本地存储</td><td>P1</td><td>允许偶尔截图/保存对比；默认本地，默认不上云。</td></tr>
+          <tr><td>F6 跟练 / 分步指导</td><td>P2（形态待定）</td><td>方向：checklist、短循环跟练；具体形态<strong>待原型确认后补充</strong>。</td></tr>
+        </table>
+
+        <h3>5.2 F1 冷启动与场合画像</h3>
+        <ul>
+          <li><strong>触发</strong>：首次启动；或用户在设置中「重新选择场合画像」。</li>
+          <li><strong>输入</strong>：场合（枚举，可扩展）、年龄段（自选 + 可选展示算法估计）、关系（自己 / 帮长辈）。</li>
+          <li><strong>规则</strong>：若系统估计年龄与用户选择不一致，<strong>一切以用户选择为准</strong>，系统可弱提示「已按您选择的年龄推荐」。</li>
+          <li><strong>输出</strong>：写入本次会话或用户配置（持久化策略技术定稿），驱动 F3 的建议模板与文案。</li>
+        </ul>
+
+        <h3>5.3 F2 实时 AR 试妆 + F4 取景辅助</h3>
+        <ul>
+          <li><strong>前置</strong>：相机权限；设备尽量覆盖多机型（需求方使用 iPhone，需在真机清单中优先包含 iOS 新机）。</li>
+          <li><strong>主线</strong>：本地视频流 → 人脸/关键点检测（实现层选型待定）→ 妆容资源叠加渲染 → 屏幕呈现。</li>
+          <li><strong>业务规则</strong>：MVP 定位为「<strong>风格与结构建议 + 轻度 AR 预览</strong>」，需在界面层面对用户预期进行管理，避免与「高拟真 AR」混淆；高拟真列为后期优化。</li>
+          <li><strong>取景辅助</strong>：当关系为「帮长辈」或检测到单人远距离自拍等策略满足时，展示距离/光线引导（具体阈值与 UI <strong>待原型确认</strong>）。</li>
+        </ul>
+
+        <h3>5.4 F3 风格与结构建议（含妈妈妆）</h3>
+        <ul>
+          <li><strong>触发</strong>：完成画像且 AR 预览可用时，或用户主动刷新建议。</li>
+          <li><strong>输出结构（至少）</strong>：推荐风格族（与场合、年龄、关系关联）；注意事项列表，<strong>必须包含</strong>眉形相关提示、唇色「不宜过浓」等代际友好约束（文案可调）。</li>
+          <li><strong>数据流</strong>：画像标签 + 本地或端侧模型输出（若未来有云，须用户勾选且单独说明）→ 前端展示。</li>
+        </ul>
+
+        <h3>5.5 F5 对比与本地存储</h3>
+        <ul>
+          <li><strong>允许</strong>：用户偶尔截图、保存「原对比 / 叠妆对比」（具体交互待原型）。</li>
+          <li><strong>隐私</strong>：默认<strong>本地-only 存储路径</strong>；<strong>默认不上传云端</strong>；若后续提供云备份或云端精修，必须<strong>用户显式勾选</strong>并展示用途说明。</li>
+        </ul>
+
+        <h3>5.6 核心端到端数据流（逻辑示意）</h3>
+        <div class="card">
+          <p><strong>主路径</strong>：冷启动画像 → 实时采集视频帧（本地）→ AR 渲染与建议生成（默认本地；云端为可选后续）→ 用户查看建议与预览 → 可选本地保存对比。</p>
+          <p><strong>边界</strong>：无相机权限时，降级策略（仅文字建议或引导开启权限）<strong>待原型确认</strong>。</p>
+        </div>
+      </section>
+
+      <section id="s6">
+        <h2>六、数据、隐私与合规要点</h2>
+        <ul>
+          <li>默认<strong>本地保存</strong>对比与截图；<strong>默认不向云端传输</strong>用户影像用于 MVP 闭环。</li>
+          <li>未来任何上传、同步、云端推理功能，需<strong>单独同意</strong>与清晰说明。</li>
+          <li>对外沟通避免过度承诺「真实妆效」；MVP 与「高还原」分阶段宣传，降低客诉风险。</li>
+        </ul>
+      </section>
+
+      <section id="s7">
+        <h2>七、非功能需求与风险</h2>
+        <table>
+          <tr><th>类别</th><th>说明</th></tr>
+          <tr><td>性能</td><td>AR 预览帧率与发热需真机分级；多机型覆盖。</td></tr>
+          <tr><td>体验红线</td><td>强烈避免「妆效假、像滤镜」—— 通过轻度叠加 + 文案 + 后续算法迭代控制。</td></tr>
+          <tr><td>风险</td><td>人脸与年龄相关能力需注意合规与伦理表述；内容需避免医疗承诺。</td></tr>
+        </table>
+      </section>
+
+      <section id="s8">
+        <h2>八、待原型与流程图确认后补充的内容</h2>
+        <div class="placeholder">
+          <p><strong>下列章节将在步骤四（HTML 原型）与步骤五（Mermaid 流程图）完成后，合并入最终版 PRD：</strong></p>
+          <ul>
+            <li><strong>详细方案</strong>：按功能模块分块，含交互规则、异常分支、<code>&lt;iframe&gt;</code> 嵌入原型切片（含 <code>?focus=</code> 专注模式参数）。</li>
+            <li><strong>整体与分功能流程图</strong>：Mermaid 源文件存放于 <code>flowcharts/</code>。</li>
+            <li><strong>异常与边界</strong>：断网（若存在云）、无权限、极端光线、检测不到人脸等。</li>
+            <li><strong>跟练模块</strong>：最终形态（checklist / 短循环 / 混合）与 PRD 双向同步更新。</li>
+          </ul>
+        </div>
+      </section>
+
+      <footer class="card" style="margin-top: 2rem;">
+        <p style="margin:0; font-size: 0.9rem; color: var(--muted);">本文档为 v1.0 详细初步版，已深度填充背景、目标、用户旅程与功能逻辑；原型与流程图确认后请升级为最终版 HTML PRD 并维护版本号。</p>
+      </footer>
+    </main>
+  </div>
+</body>
+</html>

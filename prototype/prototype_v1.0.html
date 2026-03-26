@@ -1,0 +1,581 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>AI 试妆助手 · 交互原型 v1.0</title>
+  <!--
+    原型说明：单文件 + Tailwind CDN。专注模式：URL 加 ?focus=<zone>，例如
+    prototype_v1.0.html?focus=onboarding#onboarding
+    prototype_v1.0.html?focus=camera#ar
+    prototype_v1.0.html?focus=advice#ar
+    prototype_v1.0.html?focus=hints#ar
+    prototype_v1.0.html?focus=toolbar#ar
+    PRD 嵌入可带 demo=ar（帮长辈进试妆）或 demo=ar_self（给自己）
+    若希望更精致的视觉规范，可配合 Impeccable / frontend-design 等技能二次精修。
+  -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            brand: { DEFAULT: '#8b5a6b', light: '#a87888', dark: '#6d4454' },
+            cream: { DEFAULT: '#f8f7f4', dark: '#ebe6df' }
+          },
+          fontFamily: {
+            sans: ['"Plus Jakarta Sans"', 'PingFang SC', 'Microsoft YaHei', 'sans-serif'],
+          },
+          boxShadow: {
+            'soft': '0 8px 32px rgba(139, 90, 107, 0.12)',
+          }
+        }
+      }
+    };
+  </script>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <style>
+    @keyframes pulse-ring {
+      0%, 100% { transform: scale(1); opacity: 0.5; }
+      50% { transform: scale(1.03); opacity: 0.85; }
+    }
+    .ar-ring { animation: pulse-ring 3s ease-in-out infinite; }
+    /* 动画必须带 translateX(-50%)，否则会覆盖 left-1/2 -translate-x-1/2，Toast 会偏到一侧 */
+    .toast-in { animation: toast-in 0.35s ease-out forwards; }
+    @keyframes toast-in {
+      from { opacity: 0; transform: translate(-50%, 12px); }
+      to { opacity: 1; transform: translate(-50%, 0); }
+    }
+    video::-webkit-media-controls { display: none !important; }
+  </style>
+</head>
+<body class="bg-cream text-stone-900 min-h-screen antialiased selection:bg-brand/20">
+  <div id="app-root" class="max-w-md mx-auto min-h-screen bg-white shadow-soft sm:my-4 sm:rounded-3xl sm:min-h-[812px] sm:max-h-[90vh] overflow-hidden flex flex-col relative border border-stone-200/80">
+    <!-- 顶部栏 -->
+    <header data-focus-zone="shell" class="flex items-center justify-between px-4 pt-4 pb-2 shrink-0 border-b border-stone-100 bg-white/95 backdrop-blur z-40">
+      <button type="button" id="btn-back" class="w-10 h-10 rounded-full flex items-center justify-center text-stone-500 hover:bg-stone-100 transition-colors hidden" aria-label="返回">
+        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/></svg>
+      </button>
+      <div class="flex-1 text-center">
+        <h1 class="text-sm font-semibold tracking-tight text-stone-800">AI 试妆助手</h1>
+        <p id="header-sub" class="text-[11px] text-stone-400 mt-0.5">轻度 AR 预览 · 结构级建议</p>
+      </div>
+      <button type="button" id="btn-info" class="w-10 h-10 rounded-full flex items-center justify-center text-stone-500 hover:bg-stone-100 transition-colors" aria-label="隐私说明">
+        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+      </button>
+    </header>
+
+    <!-- 隐私首访条（可关）；不设 data-focus-zone，避免专注模式下整区被 pointer-events:none 导致「知道了」无法点击 -->
+    <div id="privacy-banner" class="mx-4 mt-3 px-3 py-2.5 rounded-xl bg-emerald-50 border border-emerald-100 text-emerald-900 text-xs leading-relaxed hidden shrink-0 relative z-20">
+      <span class="font-medium">本地优先：</span>对比图默认保存在本机，不上传云端。未来若提供云功能，将单独征得您的同意。
+      <button type="button" id="privacy-dismiss" class="ml-2 text-emerald-700 underline font-medium cursor-pointer py-1.5 px-1 -my-1 rounded-md hover:bg-emerald-100/80 active:bg-emerald-100">知道了</button>
+    </div>
+
+    <!-- ========== 冷启动 / 画像 ========== -->
+    <section id="screen-onboarding" class="flex-1 flex flex-col px-4 pb-6 overflow-y-auto hidden">
+      <div data-focus-zone="onboarding" class="flex-1 flex flex-col rounded-2xl transition-opacity duration-300">
+        <div class="flex gap-1.5 mt-4 mb-6">
+          <span class="h-1 flex-1 rounded-full bg-brand step-pill" data-step="1"></span>
+          <span class="h-1 flex-1 rounded-full bg-stone-200 step-pill" data-step="2"></span>
+          <span class="h-1 flex-1 rounded-full bg-stone-200 step-pill" data-step="3"></span>
+        </div>
+
+        <div id="onb-step-1" class="onb-panel">
+          <h2 class="text-xl font-bold text-stone-900 mb-1">这次是什么场合？</h2>
+          <p class="text-sm text-stone-500 mb-5">我们会按场合调整浓淡与重点（示例选项）。</p>
+          <div class="flex flex-wrap gap-2" id="chips-occasion">
+            <button type="button" class="chip px-4 py-2.5 rounded-full text-sm font-medium border-2 border-stone-200 bg-white text-stone-700 hover:border-brand/40" data-value="travel">旅行拍照</button>
+            <button type="button" class="chip px-4 py-2.5 rounded-full text-sm font-medium border-2 border-stone-200 bg-white text-stone-700 hover:border-brand/40" data-value="party">公司年会</button>
+            <button type="button" class="chip px-4 py-2.5 rounded-full text-sm font-medium border-2 border-stone-200 bg-white text-stone-700 hover:border-brand/40" data-value="holiday">节假日聚会</button>
+            <button type="button" class="chip px-4 py-2.5 rounded-full text-sm font-medium border-2 border-stone-200 bg-white text-stone-700 hover:border-brand/40" data-value="daily">日常出门</button>
+          </div>
+        </div>
+
+        <div id="onb-step-2" class="onb-panel hidden">
+          <h2 class="text-xl font-bold text-stone-900 mb-1">年龄段</h2>
+          <p class="text-sm text-stone-500 mb-2">若与自动识别不一致，<span class="text-brand font-medium">以您的选择为准</span>。</p>
+          <p id="age-guess" class="text-xs text-stone-400 mb-4 p-2 rounded-lg bg-stone-50 border border-stone-100">系统推测（演示）：<span id="age-guess-val">—</span> · 可忽略</p>
+          <div class="flex flex-wrap gap-2" id="chips-age">
+            <button type="button" class="chip px-4 py-2.5 rounded-full text-sm font-medium border-2 border-stone-200" data-value="18-25">18–25</button>
+            <button type="button" class="chip px-4 py-2.5 rounded-full text-sm font-medium border-2 border-stone-200" data-value="26-35">26–35</button>
+            <button type="button" class="chip px-4 py-2.5 rounded-full text-sm font-medium border-2 border-stone-200" data-value="36-45">36–45</button>
+            <button type="button" class="chip px-4 py-2.5 rounded-full text-sm font-medium border-2 border-stone-200" data-value="46-55">46–55</button>
+            <button type="button" class="chip px-4 py-2.5 rounded-full text-sm font-medium border-2 border-stone-200" data-value="55+">55 及以上</button>
+          </div>
+        </div>
+
+        <div id="onb-step-3" class="onb-panel hidden">
+          <h2 class="text-xl font-bold text-stone-900 mb-1">为谁试妆？</h2>
+          <p class="text-sm text-stone-500 mb-5">选「帮长辈」会开启距离与光线提示（演示）。</p>
+          <div class="grid grid-cols-2 gap-3">
+            <button type="button" class="rel-chip flex flex-col items-center p-4 rounded-2xl border-2 border-stone-200 bg-white hover:border-brand/50 transition-all" data-value="self">
+              <span class="text-2xl mb-2">✨</span>
+              <span class="font-semibold text-stone-800">给自己</span>
+              <span class="text-xs text-stone-400 mt-1">自拍试妆</span>
+            </button>
+            <button type="button" class="rel-chip flex flex-col items-center p-4 rounded-2xl border-2 border-stone-200 bg-white hover:border-brand/50 transition-all" data-value="elder">
+              <span class="text-2xl mb-2">💐</span>
+              <span class="font-semibold text-stone-800">帮长辈</span>
+              <span class="text-xs text-stone-400 mt-1">如节日给妈妈化妆</span>
+            </button>
+          </div>
+        </div>
+
+        <div class="mt-auto pt-6 space-y-3">
+          <button type="button" id="btn-onb-next" class="w-full py-3.5 rounded-2xl bg-brand text-white font-semibold text-sm shadow-lg shadow-brand/25 hover:bg-brand-dark active:scale-[0.98] transition-all disabled:opacity-40 disabled:pointer-events-none">
+            下一步
+          </button>
+          <button type="button" id="btn-onb-prev" class="w-full py-3 rounded-2xl text-stone-500 text-sm font-medium hover:bg-stone-50 hidden">上一步</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- ========== AR 试妆主界面 ========== -->
+    <section id="screen-ar" class="flex-1 flex flex-col min-h-0 hidden">
+      <!-- 取景提示（帮长辈） -->
+      <div id="hint-banner" data-focus-zone="hints" class="mx-4 mt-3 px-3 py-2.5 rounded-xl bg-amber-50 border border-amber-100 text-amber-950 text-xs leading-relaxed hidden transition-opacity duration-300">
+        <strong class="font-semibold">举机距离：</strong>请让长辈将面部置于圆环内，手机与她面部约<strong>一臂远</strong>；避开顶光，面向柔和光源。
+      </div>
+
+      <div class="flex-1 flex flex-col px-4 pb-4 min-h-0 gap-3 overflow-y-auto overscroll-contain">
+        <!-- 取景 + 控制条（同一 focus 区，避免预览区 flex-1 与下方卡片叠层） -->
+        <div data-focus-zone="camera" class="flex flex-col gap-2 shrink-0 transition-opacity duration-300">
+          <div class="relative w-full aspect-[3/4] max-h-[min(52vh,400px)] min-h-[220px] rounded-3xl overflow-hidden bg-stone-900 shadow-inner isolate">
+            <video id="cam-video" class="absolute inset-0 w-full h-full object-cover opacity-0 pointer-events-none" playsinline autoplay muted></video>
+            <div id="cam-placeholder" class="absolute inset-0 z-0 flex flex-col items-center justify-center bg-gradient-to-b from-stone-800 to-stone-950 pointer-events-none">
+              <div class="relative w-48 h-64 flex items-center justify-center">
+                <div class="absolute inset-0 rounded-[45%] border-2 border-white/20 ar-ring"></div>
+                <div class="absolute inset-3 rounded-[45%] border border-brand/40"></div>
+              </div>
+            </div>
+            <div id="cam-hint" class="absolute inset-0 z-[6] flex flex-col items-center justify-center pointer-events-none text-center px-6">
+              <p class="text-xs text-stone-300 max-w-[240px] leading-relaxed drop-shadow-md">演示：未授权相机时为<strong class="text-white/90">模拟人脸区</strong>；彩色叠层为<strong class="text-rose-200/90">示意妆效</strong>（非真实 AR）。</p>
+              <p class="text-[10px] text-stone-400 mt-2 drop-shadow">点击下方「切换浓淡」可看变化；真机授权相机后叠在实时画面上。</p>
+            </div>
+            <div id="demo-makeup" class="absolute inset-0 pointer-events-none flex items-center justify-center z-[2]" style="opacity:0.62" aria-hidden="true">
+              <div class="relative w-44 h-56 scale-[1.02]">
+                <div class="absolute top-[38%] left-[14%] w-[34%] h-[14%] rounded-full bg-amber-900/25 blur-md mix-blend-soft-light"></div>
+                <div class="absolute top-[38%] right-[14%] w-[34%] h-[14%] rounded-full bg-amber-900/25 blur-md mix-blend-soft-light"></div>
+                <div class="absolute top-[56%] left-[18%] w-11 h-7 rounded-full bg-rose-400/50 blur-lg mix-blend-soft-light"></div>
+                <div class="absolute top-[56%] right-[18%] w-11 h-7 rounded-full bg-rose-400/50 blur-lg mix-blend-soft-light"></div>
+                <div class="absolute bottom-[22%] left-1/2 -translate-x-1/2 w-[38%] h-[10%] rounded-full bg-rose-600/45 blur-md mix-blend-multiply"></div>
+                <div class="absolute bottom-[24%] left-1/2 -translate-x-1/2 w-[32%] h-[5%] rounded-full bg-rose-300/35 blur-sm"></div>
+              </div>
+            </div>
+            <div id="ar-overlay" class="absolute inset-0 pointer-events-none flex items-center justify-center z-[3]" style="opacity:0.62">
+              <svg class="w-40 h-52 text-rose-200/50" viewBox="0 0 100 120" fill="none" aria-hidden="true">
+                <ellipse cx="50" cy="58" rx="32" ry="40" stroke="currentColor" stroke-width="0.8" />
+                <path d="M38 52 Q50 48 62 52" stroke="currentColor" stroke-width="1.2" fill="none" />
+                <ellipse cx="42" cy="54" rx="3" ry="2" fill="currentColor" />
+                <ellipse cx="58" cy="54" rx="3" ry="2" fill="currentColor" />
+                <path d="M45 68 Q50 72 55 68" stroke="currentColor" stroke-width="1" fill="none" />
+              </svg>
+            </div>
+            <div class="absolute top-3 left-3 z-[7] pointer-events-none">
+              <span class="text-[10px] text-white/80 bg-black/35 px-2 py-1 rounded-lg backdrop-blur-sm">示意妆效 · 真机将接真实 AR</span>
+            </div>
+          </div>
+          <div class="flex justify-between items-center gap-2 min-h-[44px]">
+            <span class="text-[10px] text-stone-500 leading-tight flex-1 min-w-0">轻度 AR 预览，非最终成片效果</span>
+            <button type="button" id="btn-toggle-ar" class="shrink-0 text-xs font-medium text-white bg-brand hover:bg-brand-dark px-3.5 py-2 rounded-full shadow-sm">切换浓淡</button>
+          </div>
+        </div>
+
+        <!-- 建议卡片 -->
+        <div data-focus-zone="advice" class="rounded-2xl border border-stone-200 bg-cream p-4 shadow-sm transition-opacity duration-300 shrink-0">
+          <div class="flex items-center justify-between mb-2">
+            <h3 class="text-sm font-bold text-stone-800">风格与结构建议</h3>
+            <span id="advice-tag" class="text-[10px] px-2 py-0.5 rounded-full bg-brand/10 text-brand font-medium">已按您的选择</span>
+          </div>
+          <p id="advice-summary" class="text-sm text-stone-600 leading-relaxed mb-3"></p>
+          <ul id="advice-list" class="text-xs text-stone-600 space-y-2 border-t border-stone-200/80 pt-3"></ul>
+        </div>
+
+        <!-- 底栏操作 -->
+        <div data-focus-zone="toolbar" class="flex flex-col sm:flex-row gap-2 shrink-0 pb-1 transition-opacity duration-300">
+          <button type="button" id="btn-save-compare" class="w-full sm:flex-1 min-w-0 py-3.5 rounded-2xl bg-stone-900 text-white text-sm font-semibold hover:bg-stone-800 active:scale-[0.99] transition-all">
+            保存对比（本地）
+          </button>
+          <button type="button" id="btn-reonboard" class="w-full sm:w-auto sm:shrink-0 py-3.5 px-4 rounded-2xl border-2 border-stone-200 text-stone-600 text-sm font-medium hover:bg-stone-50 whitespace-nowrap text-center">
+            重选场合
+          </button>
+        </div>
+      </div>
+    </section>
+
+    <!-- Toast -->
+    <div id="toast" class="fixed bottom-24 left-1/2 max-w-sm w-[min(90%,20rem)] px-4 py-3 rounded-2xl bg-stone-900 text-white text-sm text-center shadow-xl z-[100] opacity-0 pointer-events-none [transform:translateX(-50%)]" role="status"></div>
+
+    <!-- 隐私说明弹窗 -->
+    <div id="modal-privacy" class="fixed inset-0 z-[90] hidden items-center justify-center p-6 bg-black/40 backdrop-blur-sm">
+      <div class="bg-white rounded-3xl max-w-sm w-full p-6 shadow-2xl">
+        <h3 class="text-lg font-bold text-stone-900 mb-2">数据与隐私（MVP）</h3>
+        <ul class="text-sm text-stone-600 space-y-2 mb-6">
+          <li>· 试妆预览与对比图默认仅保存在本机。</li>
+          <li>· 默认不向云端上传您的照片。</li>
+          <li>· 若未来提供云同步或云端精修，将单独征得同意。</li>
+        </ul>
+        <button type="button" id="modal-privacy-close" class="w-full py-3 rounded-2xl bg-brand text-white font-semibold text-sm">关闭</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+(function () {
+  const STORAGE_KEY = 'ai_makeup_proto_v1';
+  const hashScreen = () => (location.hash || '#onboarding').replace('#', '').split('?')[0];
+
+  let state = {
+    step: 1,
+    occasion: null,
+    age: null,
+    relation: null,
+  };
+
+  function loadState() {
+    try {
+      const raw = sessionStorage.getItem(STORAGE_KEY);
+      if (raw) Object.assign(state, JSON.parse(raw));
+    } catch (e) {}
+  }
+  function saveState() {
+    sessionStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+  }
+
+  const el = (id) => document.getElementById(id);
+  const screens = {
+    onboarding: el('screen-onboarding'),
+    ar: el('screen-ar'),
+  };
+
+  function showScreen(name) {
+    Object.values(screens).forEach((s) => s.classList.add('hidden'));
+    if (screens[name]) screens[name].classList.remove('hidden');
+    const back = el('btn-back');
+    if (name === 'ar') back.classList.remove('hidden');
+    else back.classList.add('hidden');
+  }
+
+  function setHash(screen) {
+    if (location.hash.replace('#', '').split('?')[0] !== screen) {
+      location.hash = screen;
+    }
+  }
+
+  function renderOnboarding() {
+    document.querySelectorAll('.step-pill').forEach((p) => {
+      const n = +p.dataset.step;
+      p.classList.toggle('bg-brand', n <= state.step);
+      p.classList.toggle('bg-stone-200', n > state.step);
+    });
+    for (let i = 1; i <= 3; i++) {
+      el('onb-step-' + i).classList.toggle('hidden', i !== state.step);
+    }
+    el('btn-onb-prev').classList.toggle('hidden', state.step === 1);
+    const next = el('btn-onb-next');
+    if (state.step === 3) {
+      next.textContent = '进入试妆';
+    } else {
+      next.textContent = '下一步';
+    }
+    next.disabled = !canProceed();
+  }
+
+  function canProceed() {
+    if (state.step === 1) return !!state.occasion;
+    if (state.step === 2) return !!state.age;
+    if (state.step === 3) return !!state.relation;
+    return false;
+  }
+
+  const occasionLabels = { travel: '旅行拍照', party: '公司年会', holiday: '节假日聚会', daily: '日常出门' };
+  const ageLabels = { '18-25': '18–25', '26-35': '26–35', '36-45': '36–45', '46-55': '46–55', '55+': '55 及以上' };
+
+  function buildAdvice() {
+    const occ = occasionLabels[state.occasion] || '当前场合';
+    const age = ageLabels[state.age] || '所选年龄';
+    const forElder = state.relation === 'elder';
+    const summary = forElder
+      ? `「${occ}」场景下，针对长辈肤质与气质，建议以清透底妆 + 柔和眉眼为主，避免厚重色彩。已按您选择的年龄段（${age}）生成结构建议。`
+      : `「${occ}」场景下，结合您选择的年龄段（${age}），推荐以下风格结构与注意点（演示文案）。`;
+
+    const items = forElder
+      ? [
+          '眉形：保持自然弧度，略提眉峰即可，避免过细过挑。',
+          '唇色：选择豆沙、珊瑚等低饱和色，不宜过浓或满涂高亮。',
+          '眼妆：哑光大地色轻扫轮廓即可，避免大亮片与过粗眼线。',
+          '腮红：位置略靠上、范围小，提气色即可。',
+        ]
+      : [
+          '眉形：按脸型微调眉头间距，保持根根分明感。',
+          '唇色：可与场合匹配浓淡档；拍照场合可略加重轮廓线。',
+          '眼妆：先结构后色彩，注意眼窝过渡避免生硬边界。',
+          '整体：本预览为轻度 AR，真实效果受光线与产品影响。',
+        ];
+
+    el('advice-summary').textContent = summary;
+    const ul = el('advice-list');
+    ul.innerHTML = items.map((t) => '<li class="flex gap-2"><span class="text-brand shrink-0">·</span><span>' + t + '</span></li>').join('');
+    el('advice-tag').textContent = forElder ? '帮长辈模式' : '给自己';
+
+    el('hint-banner').classList.toggle('hidden', !forElder);
+  }
+
+  let arIntensity = 1;
+  function applyArVisuals() {
+    const outlineOp = [0.38, 0.55, 0.78][arIntensity];
+    const makeupOp = [0.35, 0.58, 0.82][arIntensity];
+    el('ar-overlay').style.opacity = String(outlineOp);
+    el('demo-makeup').style.opacity = String(makeupOp);
+  }
+  function toggleArIntensity() {
+    arIntensity = (arIntensity + 1) % 3;
+    applyArVisuals();
+    showToast(['已切换：淡雅档', '已切换：标准档', '已切换：拍照稍浓档'][arIntensity]);
+  }
+
+  function showToast(msg) {
+    const t = el('toast');
+    t.textContent = msg;
+    t.classList.remove('opacity-0', 'pointer-events-none');
+    t.classList.add('toast-in');
+    clearTimeout(showToast._tid);
+    showToast._tid = setTimeout(() => {
+      t.classList.add('opacity-0', 'pointer-events-none');
+      t.classList.remove('toast-in');
+    }, 2200);
+  }
+
+  function tryCamera() {
+    const video = el('cam-video');
+    const ph = el('cam-placeholder');
+    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) return;
+    navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user' }, audio: false })
+      .then((stream) => {
+        video.srcObject = stream;
+        video.classList.remove('opacity-0', 'pointer-events-none');
+        video.classList.add('opacity-100');
+        ph.classList.add('opacity-20');
+        const hint = el('cam-hint');
+        if (hint) hint.classList.add('opacity-0');
+      })
+      .catch(() => {});
+  }
+
+  function route() {
+    const h = hashScreen();
+    if (h === 'ar') {
+      if (!state.occasion || !state.age || !state.relation) {
+        location.hash = 'onboarding';
+        return;
+      }
+      showScreen('ar');
+      buildAdvice();
+      applyArVisuals();
+      tryCamera();
+    } else {
+      showScreen('onboarding');
+      renderOnboarding();
+    }
+    applyFocusMode();
+  }
+
+  /** 专注模式：?focus=zone 与 data-focus-zone 对应 */
+  function getFocusParam() {
+    return new URLSearchParams(location.search).get('focus');
+  }
+
+  function resetFocusZones() {
+    document.querySelectorAll('[data-focus-zone]').forEach((z) => {
+      z.classList.remove('opacity-40', '!opacity-100', 'pointer-events-none', 'relative', 'z-[60]', 'ring-2', 'ring-brand', 'ring-offset-2');
+    });
+  }
+
+  /** 从试妆返回冷启动时若仍带 focus=toolbar 等，会锁错屏；与当前路由不一致时不应用专注模式 */
+  function focusMatchesCurrentRoute(focus, routeHash) {
+    const h = routeHash || 'onboarding';
+    const arOnly = ['camera', 'hints', 'advice', 'toolbar'];
+    const onboardingOnly = ['onboarding'];
+    if (h === 'ar') {
+      if (onboardingOnly.includes(focus)) return false;
+    } else {
+      if (arOnly.includes(focus)) return false;
+    }
+    return true;
+  }
+
+  /** 内部跳转回冷启动时去掉 focus，避免 URL 残留导致无法点选 */
+  function stripFocusParamFromUrl() {
+    try {
+      const u = new URL(location.href);
+      if (!u.searchParams.has('focus')) return;
+      u.searchParams.delete('focus');
+      history.replaceState(null, '', u.pathname + u.search + u.hash);
+    } catch (e) {}
+  }
+
+  function applyFocusMode() {
+    const focus = getFocusParam();
+    const zones = document.querySelectorAll('[data-focus-zone]');
+    const h = hashScreen() || 'onboarding';
+
+    if (!focus || !focusMatchesCurrentRoute(focus, h)) {
+      resetFocusZones();
+      return;
+    }
+    zones.forEach((z) => {
+      const id = z.getAttribute('data-focus-zone');
+      const match = id === focus;
+      z.classList.toggle('opacity-40', !match);
+      z.classList.toggle('pointer-events-none', !match);
+      z.classList.toggle('relative', match);
+      z.classList.toggle('z-[60]', match);
+      z.classList.toggle('ring-2', match);
+      z.classList.toggle('ring-brand', match);
+      z.classList.toggle('ring-offset-2', match);
+      if (match) z.classList.add('!opacity-100');
+      else z.classList.remove('!opacity-100');
+    });
+  }
+
+  /* 冷启动：随机演示「系统推测年龄」 */
+  function fakeAgeGuess() {
+    const opts = ['26–35 岁', '46–55 岁', '36–45 岁'];
+    el('age-guess-val').textContent = opts[Math.floor(Math.random() * opts.length)];
+  }
+
+  /* Chips */
+  document.querySelectorAll('#chips-occasion .chip').forEach((b) => {
+    b.addEventListener('click', () => {
+      document.querySelectorAll('#chips-occasion .chip').forEach((x) => {
+        x.classList.remove('border-brand', 'bg-brand/5', 'text-brand-dark');
+        x.classList.add('border-stone-200');
+      });
+      b.classList.add('border-brand', 'bg-brand/5', 'text-brand-dark');
+      b.classList.remove('border-stone-200');
+      state.occasion = b.dataset.value;
+      saveState();
+      renderOnboarding();
+    });
+  });
+  document.querySelectorAll('#chips-age .chip').forEach((b) => {
+    b.addEventListener('click', () => {
+      document.querySelectorAll('#chips-age .chip').forEach((x) => {
+        x.classList.remove('border-brand', 'bg-brand/5', 'text-brand-dark');
+        x.classList.add('border-stone-200');
+      });
+      b.classList.add('border-brand', 'bg-brand/5', 'text-brand-dark');
+      b.classList.remove('border-stone-200');
+      state.age = b.dataset.value;
+      saveState();
+      renderOnboarding();
+    });
+  });
+  document.querySelectorAll('.rel-chip').forEach((b) => {
+    b.addEventListener('click', () => {
+      document.querySelectorAll('.rel-chip').forEach((x) => {
+        x.classList.remove('border-brand', 'bg-brand/5', 'ring-2', 'ring-brand/30');
+        x.classList.add('border-stone-200');
+      });
+      b.classList.add('border-brand', 'bg-brand/5', 'ring-2', 'ring-brand/30');
+      b.classList.remove('border-stone-200');
+      state.relation = b.dataset.value;
+      saveState();
+      renderOnboarding();
+    });
+  });
+
+  el('btn-onb-next').addEventListener('click', () => {
+    if (!canProceed()) return;
+    if (state.step < 3) {
+      state.step++;
+      if (state.step === 2) fakeAgeGuess();
+      saveState();
+      renderOnboarding();
+    } else {
+      saveState();
+      setHash('ar');
+    }
+  });
+  el('btn-onb-prev').addEventListener('click', () => {
+    if (state.step > 1) {
+      state.step--;
+      saveState();
+      renderOnboarding();
+    }
+  });
+
+  el('btn-back').addEventListener('click', () => {
+    stripFocusParamFromUrl();
+    setHash('onboarding');
+  });
+  el('btn-reonboard').addEventListener('click', () => {
+    state.step = 1;
+    saveState();
+    stripFocusParamFromUrl();
+    setHash('onboarding');
+  });
+  el('btn-save-compare').addEventListener('click', () => showToast('已保存至相册（演示）：对比图默认仅本地存储'));
+  el('btn-toggle-ar').addEventListener('click', toggleArIntensity);
+
+  el('btn-info').addEventListener('click', () => {
+    el('modal-privacy').classList.remove('hidden');
+    el('modal-privacy').classList.add('flex');
+  });
+  el('modal-privacy-close').addEventListener('click', () => {
+    el('modal-privacy').classList.add('hidden');
+    el('modal-privacy').classList.remove('flex');
+  });
+
+  el('privacy-dismiss').addEventListener('click', (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    const b = el('privacy-banner');
+    b.classList.add('hidden');
+    b.setAttribute('aria-hidden', 'true');
+    sessionStorage.setItem(STORAGE_KEY + '_privacy_ok', '1');
+  });
+
+  window.addEventListener('hashchange', route);
+  window.addEventListener('load', () => {
+    loadState();
+    const demo = new URLSearchParams(location.search).get('demo');
+    if (demo === 'ar' || demo === 'ar_self') {
+      state = {
+        step: 3,
+        occasion: 'party',
+        age: '26-35',
+        relation: demo === 'ar_self' ? 'self' : 'elder',
+      };
+      saveState();
+      location.hash = 'ar';
+    } else if (!location.hash || location.hash === '#') {
+      location.hash = 'onboarding';
+    }
+    route();
+    if (!sessionStorage.getItem(STORAGE_KEY + '_privacy_ok')) {
+      const b = el('privacy-banner');
+      b.classList.remove('hidden');
+      b.removeAttribute('aria-hidden');
+    }
+    /* 恢复已选 chips 视觉 */
+    if (state.occasion) {
+      const o = document.querySelector('#chips-occasion .chip[data-value="' + state.occasion + '"]');
+      if (o) o.click();
+    }
+    if (state.age) {
+      const a = document.querySelector('#chips-age .chip[data-value="' + state.age + '"]');
+      if (a) a.click();
+    }
+    if (state.relation) {
+      const r = document.querySelector('.rel-chip[data-value="' + state.relation + '"]');
+      if (r) r.click();
+    }
+    renderOnboarding();
+  });
+})();
+  </script>
+</body>
+</html>

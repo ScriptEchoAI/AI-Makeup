@@ -1,0 +1,7 @@
+# Netlify：新建站点时「Base directory」选 app，或仓库根目录下配置指向本文件
+[build]
+  command = "npm run build"
+  publish = "dist"
+
+[build.environment]
+  NODE_VERSION = "20"
